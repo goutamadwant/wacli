@@ -201,6 +201,21 @@ func canonicalOutboundQuoteSender(ctx context.Context, resolver outboundTextReso
 	return jid.String()
 }
 
+func outboundTextDisplayText(text string, quote *waProto.ContextInfo) string {
+	base := strings.TrimSpace(text)
+	if base == "" {
+		base = "(message)"
+	}
+	if quote == nil || strings.TrimSpace(quote.GetStanzaID()) == "" {
+		return base
+	}
+	quoted := strings.TrimSpace(wa.MessageDisplayText(quote.GetQuotedMessage()))
+	if quoted == "" {
+		quoted = "message"
+	}
+	return fmt.Sprintf("> %s\n%s", quoted, base)
+}
+
 func persistOutboundTextWith(ctx context.Context, db *store.DB, resolver outboundTextResolver, chat types.JID, msgID, text string, now time.Time, contexts ...*waProto.ContextInfo) error {
 	chat = canonicalOutboundChat(ctx, resolver, chat)
 	var quote *waProto.ContextInfo
@@ -221,6 +236,7 @@ func persistOutboundTextWith(ctx context.Context, db *store.DB, resolver outboun
 		Timestamp:       now,
 		FromMe:          true,
 		Text:            text,
+		DisplayText:     outboundTextDisplayText(text, quote),
 		QuotedMsgID:     quote.GetStanzaID(),
 		QuotedSenderJID: canonicalOutboundQuoteSender(ctx, resolver, quote.GetParticipant()),
 	}); err != nil {

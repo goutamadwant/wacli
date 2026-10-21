@@ -692,8 +692,7 @@ func executeDelegatedReact(ctx context.Context, a *app.App, req sendDelegateRequ
 		return sendDelegateResponse{}, err
 	}
 	now := time.Now().UTC()
-	chatName := a.WA().ResolveChatName(ctx, chat, "")
-	storeErr := upsertSentReaction(a.DB(), chat, chatName, sentID, req.ID, req.Reaction, now)
+	storeErr := upsertSentReaction(ctx, a.DB(), a.WA(), chat, sentID, req.ID, req.Reaction, now)
 	waitForPostSendRetryReceipts(ctx, millisDuration(req.PostSendWaitMS, 0))
 	resp := sendDelegateResponse{OK: true, Sent: true, To: chat.String(), ID: string(sentID), Target: req.ID, Reaction: req.Reaction}
 	if storeErr != nil {

@@ -335,7 +335,8 @@ func TestUpsertSentReactionStoresDisplayText(t *testing.T) {
 		t.Fatalf("UpsertMessage target: %v", err)
 	}
 
-	upsertSentReaction(db, chat, "Alice", "react1", "target", "👍", now)
+	resolver := fakeTextResolver{}
+	upsertSentReaction(context.Background(), db, resolver, chat, "react1", "target", "👍", now)
 
 	msg, err := db.GetMessage(chat.String(), "react1")
 	if err != nil {
@@ -349,6 +350,41 @@ func TestUpsertSentReactionStoresDisplayText(t *testing.T) {
 	}
 	if msg.DisplayText != "Reacted 👍 to hello reaction target" {
 		t.Fatalf("display text = %q", msg.DisplayText)
+	}
+}
+
+func TestUpsertSentReactionCanonicalizesLIDChat(t *testing.T) {
+	db := openSendTestDB(t)
+	pn := types.NewJID("15551234567", types.DefaultUserServer)
+	lid := types.NewJID("20001", types.HiddenUserServer)
+	now := time.Date(2026, 5, 5, 6, 30, 0, 0, time.UTC)
+	resolver := outboundTextResolverStub{lid: lid, pn: pn}
+
+	if err := db.UpsertChat(pn.String(), "dm", "Me", now); err != nil {
+		t.Fatalf("UpsertChat: %v", err)
+	}
+	if err := db.UpsertMessage(store.UpsertMessageParams{
+		ChatJID:   pn.String(),
+		MsgID:     "target",
+		Timestamp: now.Add(-time.Second),
+		FromMe:    true,
+		Text:      "self target",
+	}); err != nil {
+		t.Fatalf("UpsertMessage target: %v", err)
+	}
+
+	if err := upsertSentReaction(context.Background(), db, resolver, lid, "react1", "target", "🌺", now); err != nil {
+		t.Fatalf("upsertSentReaction: %v", err)
+	}
+	msg, err := db.GetMessage(pn.String(), "react1")
+	if err != nil {
+		t.Fatalf("GetMessage canonical reaction: %v", err)
+	}
+	if msg.ChatJID != pn.String() || msg.DisplayText != "Reacted 🌺 to self target" {
+		t.Fatalf("reaction chat/display = %q/%q", msg.ChatJID, msg.DisplayText)
+	}
+	if _, err := db.GetMessage(lid.String(), "react1"); err == nil {
+		t.Fatal("reaction was also stored under the LID chat")
 	}
 }
 

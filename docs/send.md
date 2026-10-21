@@ -48,7 +48,7 @@ wacli polls list [--chat RECIPIENT] [--limit N] [--json]
 - For unsynced group replies, pass `--reply-to-sender`; the reply then quotes the message ID and sender without its content.
 - `send react` defaults to thumbs-up.
 - Pass `--reaction ""` to clear a reaction.
-- Sent reactions are stored locally immediately, including reaction target and display text.
+- Sent reactions are stored locally immediately under the canonical phone/LID chat, including reaction target and display text. Sent text replies also retain their quoted display text before the next sync.
 - For group reactions, pass `--sender` for the original message sender.
 - Use `--post-send-wait 0` to disable the retry-receipt grace window for latency-sensitive scripts.
 - If any send command (text, file, voice, sticker, status, react, poll, poll vote, select, or message forward) delivers a message but recording it in local history fails (disk full, locked store), the command still succeeds with the delivered id and prints a warning to stderr; JSON output carries the failure in `store_warning`, including for sends delegated to a running `sync --follow` process. Do not retry such a send — the recipient already has the message.
